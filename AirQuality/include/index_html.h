@@ -19,10 +19,22 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
   <div class="card">
     <h1>🦦 OtterSense S3</h1>
-    <div class="value">%PM25%</div>
+    <div class="value" id="pm25">%PM25%</div>
     <div class="unit">µg/m³ (PM2.5)</div>
-    <div class="version">v1.2 | Pa Daet, Chiang Mai</div>
+    <div class="version">v1.3 | Auto-Refresh Mode</div>
   </div>
+
+  <script>
+    setInterval(function() {
+      // แอบไปดึงข้อมูลจากเส้นทาง /api/pm25 ทุกๆ 2 วินาที
+      fetch('/api/pm25')
+        .then(response => response.text())
+        .then(data => {
+          // เอาตัวเลขใหม่มาเสียบแทนที่เดิม
+          document.getElementById("pm25").innerText = data;
+        });
+    }, 2000); // 2000 มิลลิวินาที = 2 วินาที
+  </script>
 </body>
 </html>)rawliteral";
 
