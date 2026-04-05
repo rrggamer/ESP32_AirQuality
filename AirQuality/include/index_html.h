@@ -1,0 +1,29 @@
+#ifndef INDEX_HTML_H
+#define INDEX_HTML_H
+
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OtterSense Dashboard</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 20px; }
+    .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+    h1 { color: #1a73e8; }
+    .value { font-size: 4rem; color: #202124; font-weight: bold; }
+    .unit { color: #70757a; }
+    .version { font-size: 0.7rem; color: #ccc; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🦦 OtterSense S3</h1>
+    <div class="value">%PM25%</div>
+    <div class="unit">µg/m³ (PM2.5)</div>
+    <div class="version">v1.2 | Pa Daet, Chiang Mai</div>
+  </div>
+</body>
+</html>)rawliteral";
+
+#endif
