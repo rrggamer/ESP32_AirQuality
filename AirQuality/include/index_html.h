@@ -13,27 +13,35 @@ const char index_html[] PROGMEM = R"rawliteral(
     h1 { color: #1a73e8; }
     .value { font-size: 4rem; color: #202124; font-weight: bold; }
     .unit { color: #70757a; }
-    .version { font-size: 0.7rem; color: #ccc; margin-top: 20px; }
+    .status { font-size: 0.8rem; color: #999; margin-top: 20px; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>🦦 OtterSense S3</h1>
+    <h1>OtterSense Dashboard</h1>
     <div class="value" id="pm25">%PM25%</div>
     <div class="unit">µg/m³ (PM2.5)</div>
-    <div class="version">v1.3 | Auto-Refresh Mode</div>
+    <div id="timestamp" class="status">Loading data...</div>
   </div>
 
   <script>
+    // Fetch data from API every 2 seconds
     setInterval(function() {
-      // แอบไปดึงข้อมูลจากเส้นทาง /api/pm25 ทุกๆ 2 วินาที
-      fetch('/api/pm25')
-        .then(response => response.text())
+      fetch('/api/data')
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
         .then(data => {
-          // เอาตัวเลขใหม่มาเสียบแทนที่เดิม
-          document.getElementById("pm25").innerText = data;
+          // Update UI with new values
+          document.getElementById("pm25").innerText = data.pm25;
+          document.getElementById("timestamp").innerText = "Last Updated: " + data.time;
+        })
+        .catch(error => {
+          console.error('Fetch error:', error);
+          document.getElementById("timestamp").innerText = "Connection Lost";
         });
-    }, 2000); // 2000 มิลลิวินาที = 2 วินาที
+    }, 2000);
   </script>
 </body>
 </html>)rawliteral";

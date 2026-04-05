@@ -4,14 +4,14 @@
 #include <ESPAsyncWebServer.h>
 #include <ElegantOTA.h>
 #include <ESPmDNS.h>
+#include <time.h>
 #include "credentials.h"
 #include "index_html.h"
 
-// อ้างอิงตัวแปรจากไฟล์หลัก
 extern AsyncWebServer server;
 extern int current_pm25;
 
-// ฟังก์ชันแทนที่ตัวแปรในหน้า HTML ตอนโหลดครั้งแรก
+// Replace placeholders in HTML during initial load
 String processor(const String& var){
   if(var == "PM25") {
     return String(current_pm25);
@@ -20,7 +20,7 @@ String processor(const String& var){
 }
 
 void setupNetwork() {
-  // 1. ตั้งค่า WiFi
+  // 1. WiFi Configuration
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi");
@@ -31,44 +31,51 @@ void setupNetwork() {
   }
   
   Serial.println("\nWiFi Connected!");
-  Serial.print("IP Address: ");
+  Serial.print("IP: ");
   Serial.println(WiFi.localIP());
 
-  // 2. ตั้งค่า mDNS (เข้าผ่าน http://ottersense.local)
+  // 2. Time Synchronization (NTP)
+  configTime(7 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+
+  // 3. mDNS Setup (http://ottersense.local)
   if (MDNS.begin("ottersense")) {
-    Serial.println("mDNS responder started: http://ottersense.local");
     MDNS.addService("http", "tcp", 80);
   }
 
-  // 3. กำหนดเส้นทางหน้าเว็บ (Routes)
+  // 4. Routes
   
-  // หน้าหลัก Dashboard
+  // Serve Main Dashboard
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html, processor);
   });
 
-  // ช่องทาง API สำหรับให้หน้าเว็บดึงเลข PM2.5 ไปอัปเดตเองอัตโนมัติ
-  server.on("/api/pm25", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(200, "text/plain", String(current_pm25));
+  // API for Auto-Refresh (JSON format)
+  server.on("/api/data", HTTP_GET, [](AsyncWebServerRequest *request){
+    struct tm timeinfo;
+    String timeStr = "00:00:00";
+    
+    if(getLocalTime(&timeinfo)){
+      char timeStringBuff[50];
+      strftime(timeStringBuff, sizeof(timeStringBuff), "%H:%M:%S", &timeinfo);
+      timeStr = String(timeStringBuff);
+    }
+
+    String json = "{\"pm25\":" + String(current_pm25) + ", \"time\":\"" + timeStr + "\"}";
+    request->send(200, "application/json", json);
   });
 
-  // 4. ตั้งค่าระบบ OTA (อัปเกรดผ่านอากาศ)
+  // 5. OTA System
   ElegantOTA.begin(&server);
-  
-  // ปิด AutoReboot เพื่อจัดการจังหวะการเริ่มระบบใหม่ให้เสถียรขึ้น (แก้ปัญหาค้าง 100%)
   ElegantOTA.setAutoReboot(false); 
   
   ElegantOTA.onEnd([](bool success) {
     if (success) {
-      Serial.println("OTA Update Successful! Rebooting in 2 seconds...");
+      Serial.println("OTA Success! Rebooting...");
       delay(2000); 
       ESP.restart();
-    } else {
-      Serial.println("OTA Update Failed!");
     }
   });
 
-  // 5. เริ่มการทำงานของ Web Server
   server.begin();
   Serial.println("HTTP Server started");
 }
